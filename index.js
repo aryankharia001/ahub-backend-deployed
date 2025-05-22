@@ -30,6 +30,7 @@ app.use(helmet({
 const corsOptions = {
   origin: [
     'https://ahub-frontend-deployed-git-main-aryans-projects-dd777310.vercel.app',
+    'https://ahub-frontend-deployed.vercel.app/',
     'http://localhost:5173' // For local development
   ],
   credentials: true,
