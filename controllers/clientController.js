@@ -67,13 +67,7 @@ exports.reviewSubmittedWork = async (req, res) => {
         });
       }
       
-      // Check if job is in the completed status
-      if (job.status !== 'completed' && job.status !== 'revision_completed') {
-        return res.status(400).json({
-          success: false,
-          message: 'Can only review jobs that are in completed or revision_completed status'
-        });
-      }
+      
       
       // Handle client's decision
       if (action === 'approve') {

@@ -10,13 +10,13 @@ const deliverableSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  type: {
+  downloadUrl: {  // Add this field for direct download URL
     type: String,
     required: true
   },
-  isWatermarked: {
-    type: Boolean,
-    default: false
+  type: {
+    type: String,
+    required: true
   },
   uploadedAt: {
     type: Date,

@@ -4,6 +4,7 @@ const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const path = require('path');
 const fs = require('fs');
+const { uploadFileToDrive } = require('../utils/googleDriveService');
 
 exports.getAvailableJobs = async (req, res) => {
   try {
@@ -142,37 +143,353 @@ exports.applyForJob = async (req, res) => {
 };
 
 // Submit initial work or revised work for a job
+// controllers/jobController.js - Updated submitWork function
+
+// Updated submitWork Controller to support both local uploads and Google Drive files
+// exports.submitWork = async (req, res) => {
+//   try {
+//     const jobId = req.params.id;
+//     const { revisionId, uploadSource } = req.body;
+    
+//     // Find the job
+//     const job = await Job.findById(jobId);
+    
+//     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    
+//     // Check if user is the freelancer assigned to this job
+//     if (job.freelancer.toString() !== req.user.id) {
+//       return res.status(403).json({ success: false, message: 'Not authorized to submit work for this job' });
+//     }
+    
+//     let deliverables = [];
+    
+//     // Handle Google Drive files if that's the upload source
+//     if (uploadSource === 'drive' && req.body.driveFiles) {
+//       try {
+//         // Parse driveFiles if it's a string
+//         const driveFilesData = typeof req.body.driveFiles === 'string' 
+//           ? JSON.parse(req.body.driveFiles) 
+//           : req.body.driveFiles;
+          
+//         // Process Google Drive files
+//         deliverables = driveFilesData.map(file => ({
+//           name: file.name,
+//           url: `https://drive.google.com/file/d/${file.id}/view`,
+//           downloadUrl: `https://drive.google.com/uc?export=download&id=${file.id}`,
+//           type: file.mimeType
+//         }));
+//       } catch (error) {
+//         console.error('Error processing Google Drive files:', error);
+//         return res.status(400).json({ 
+//           success: false, 
+//           message: 'Error processing Google Drive files' 
+//         });
+//       }
+//     } 
+//     // Handle regular file uploads
+//     else if (req.files && req.files.length > 0) {
+//       // Upload files to Google Drive
+//       const uploadPromises = req.files.map(async (file) => {
+//         // Create a folder for this job
+//         const folderName = `Job_${job._id}_${job.title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        
+//         // Upload to Google Drive
+//         const uploadedFile = await uploadFileToDrive(file, folderName);
+        
+//         return {
+//           name: file.originalname,
+//           url: uploadedFile.viewUrl,      // URL to view the file in Google Drive
+//           downloadUrl: uploadedFile.downloadUrl, // URL to download the file
+//           type: file.mimetype
+//         };
+//       });
+      
+//       // Wait for all uploads to complete
+//       deliverables = await Promise.all(uploadPromises);
+//     } 
+//     // No files uploaded and not using Google Drive
+//     else {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'No files uploaded' 
+//       });
+//     }
+    
+//     // Handle revision submission if revisionId is provided
+//     if (revisionId) {
+//       // Check if job is in revision_requested status
+//       if (job.status !== 'revision_requested' && job.status !== 'revision_in_progress') {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Can only submit revisions for jobs that have a revision requested'
+//         });
+//       }
+      
+//       // Find the revision
+//       const revisionIndex = job.revisions.findIndex(
+//         rev => rev._id.toString() === revisionId
+//       );
+      
+//       if (revisionIndex === -1) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'Revision request not found'
+//         });
+//       }
+      
+//       // Update the revision
+//       job.revisions[revisionIndex].status = 'completed';
+//       job.revisions[revisionIndex].completedAt = new Date();
+//       job.revisions[revisionIndex].freelancerNotes = req.body.message || '';
+//       job.revisions[revisionIndex].deliverables = deliverables;
+      
+//       // Update job status
+//       job.status = 'revision_completed';
+      
+//       await job.save();
+      
+//       return res.status(200).json({
+//         success: true,
+//         data: job,
+//         message: 'Revision submitted successfully. The client will be notified to review the changes.'
+//       });
+//     }
+//     // Handle initial submission
+//     else {
+//       // Check if job is in progress
+//       if (job.status !== 'in_progress') {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Can only submit work for jobs that are in progress'
+//         });
+//       }
+      
+//       // Update deliverables with Google Drive URLs
+//       job.deliverables = deliverables;
+      
+//       // Update job status to completed
+//       job.status = 'completed';
+//       job.freelancerNote = req.body.message || '';
+      
+//       await job.save();
+      
+//       return res.status(200).json({
+//         success: true,
+//         data: job,
+//         message: 'Work submitted successfully. The client has been notified and can review your work.'
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error in submitWork:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// };
+
+// exports.submitWork = async (req, res) => {
+//   try {
+//     const jobId = req.params.id;
+//     const { revisionId } = req.body;
+    
+//     // Find the job
+//     const job = await Job.findById(jobId);
+    
+//     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+    
+//     // Check if user is the freelancer assigned to this job
+//     if (job.freelancer.toString() !== req.user.id) {
+//       return res.status(403).json({ success: false, message: 'Not authorized to submit work for this job' });
+//     }
+    
+//     // Process uploaded files
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ success: false, message: 'No files uploaded' });
+//     }
+    
+//     // Upload files to Google Drive
+//     const uploadPromises = req.files.map(async (file) => {
+//       // Create a folder for this job
+//       const folderName = `Job_${job._id}_${job.title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      
+//       // Upload to Google Drive
+//       const uploadedFile = await uploadFileToDrive(file, folderName);
+      
+//       return {
+//         name: file.originalname,
+//         url: uploadedFile.viewUrl,      // URL to view the file in Google Drive
+//         downloadUrl: uploadedFile.downloadUrl, // URL to download the file
+//         type: file.mimetype
+//       };
+//     });
+    
+//     // Wait for all uploads to complete
+//     const deliverables = await Promise.all(uploadPromises);
+    
+//     // Handle revision submission if revisionId is provided
+//     if (revisionId) {
+//       console.log(`Processing revision submission for revisionId: ${revisionId}`);
+      
+//       // Check if job is in revision_requested status
+//       if (job.status !== 'revision_requested' && job.status !== 'revision_in_progress') {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Can only submit revisions for jobs that have a revision requested'
+//         });
+//       }
+      
+//       // Find the revision
+//       const revisionIndex = job.revisions.findIndex(
+//         rev => rev._id.toString() === revisionId
+//       );
+      
+//       if (revisionIndex === -1) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'Revision request not found'
+//         });
+//       }
+      
+//       console.log(`Found revision at index ${revisionIndex}`);
+      
+//       // Update the revision
+//       job.revisions[revisionIndex].status = 'completed';
+//       job.revisions[revisionIndex].completedAt = new Date();
+//       job.revisions[revisionIndex].freelancerNotes = req.body.message || '';
+//       job.revisions[revisionIndex].deliverables = deliverables;
+      
+//       // Update job status
+//       job.status = 'revision_completed';
+      
+//       await job.save();
+      
+//       return res.status(200).json({
+//         success: true,
+//         data: job,
+//         message: 'Revision submitted successfully. The client will be notified to review the changes.'
+//       });
+//     }
+//     // Handle initial submission
+//     else {
+//       // Check if job is in progress
+//       if (job.status !== 'in_progress') {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Can only submit work for jobs that are in progress'
+//         });
+//       }
+      
+//       // Update deliverables with Google Drive URLs
+//       job.deliverables = deliverables;
+      
+//       // Update job status to completed
+//       job.status = 'completed';
+//       job.freelancerNote = req.body.message || '';
+      
+//       await job.save();
+      
+//       return res.status(200).json({
+//         success: true,
+//         data: job,
+//         message: 'Work submitted successfully. The client has been notified and can review your work.'
+//       });
+//     }
+//   } catch (error) {
+//     console.error('Error in submitWork:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// };
+
+
 exports.submitWork = async (req, res) => {
   try {
     const jobId = req.params.id;
-    const { revisionId } = req.body;
+    const { revisionId, message } = req.body;
+
+    // Validate jobId
+    if (!jobId || jobId === 'undefined') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid job ID is required' 
+      });
+    }
+
+    console.log(`Processing work submission for jobId: ${jobId}`);
     
     // Find the job
     const job = await Job.findById(jobId);
     
-    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
-  
-    // Check if user is the freelancer assigned to this job
-    if (job.freelancer.toString() !== req.user.id) {
-      return res.status(403).json({ success: false, message: 'Not authorized to submit work for this job' });
+    if (!job) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Job not found' 
+      });
     }
-    
+
+    // Check if user is the freelancer assigned to this job
+    if (!job.freelancer || job.freelancer.toString() !== req.user.id) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized to submit work for this job' 
+      });
+    }
+
     // Process uploaded files
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ success: false, message: 'No files uploaded' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No files uploaded' 
+      });
     }
-    
-    // Prepare file objects with watermarks
-    const deliverables = req.files.map(file => ({
-      name: file.originalname,
-      url: `${req.protocol}://${req.get('host')}/uploads/contributor/${file.filename}`,
-      type: file.mimetype,
-      uploadedAt: new Date(),
-      isWatermarked: true // Always watermark files until final payment
-    }));
-    
+
+    console.log(`Processing ${req.files.length} files for upload`);
+
+    // Upload files to Google Drive
+    const uploadPromises = req.files.map(async (file) => {
+      try {
+        // Create a folder for this job
+        const folderName = `Job_${job._id}_${job.title.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        
+        // Upload to Google Drive
+        const uploadedFile = await uploadFileToDrive(file, folderName);
+        
+        return {
+          name: file.originalname,
+          url: uploadedFile.viewUrl,      // URL to view the file in Google Drive
+          downloadUrl: uploadedFile.downloadUrl, // URL to download the file
+          type: file.mimetype,
+          uploadedAt: new Date()
+        };
+      } catch (uploadError) {
+        console.error(`Error uploading file ${file.originalname}:`, uploadError);
+        throw new Error(`Failed to upload file: ${file.originalname}`);
+      }
+    });
+
+    // Wait for all uploads to complete
+    let deliverables;
+    try {
+      deliverables = await Promise.all(uploadPromises);
+      console.log(`Successfully uploaded ${deliverables.length} files`);
+    } catch (uploadError) {
+      console.error('Error uploading files:', uploadError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload files to Google Drive',
+        error: uploadError.message
+      });
+    }
+
     // Handle revision submission if revisionId is provided
-    if (revisionId) {
+    if (revisionId && revisionId !== 'undefined') {
+      console.log(`Processing revision submission for revisionId: ${revisionId}`);
+      
       // Check if job is in revision_requested status
       if (job.status !== 'revision_requested' && job.status !== 'revision_in_progress') {
         return res.status(400).json({
@@ -180,38 +497,44 @@ exports.submitWork = async (req, res) => {
           message: 'Can only submit revisions for jobs that have a revision requested'
         });
       }
-      
+
       // Find the revision
       const revisionIndex = job.revisions.findIndex(
         rev => rev._id.toString() === revisionId
       );
-      
+
       if (revisionIndex === -1) {
         return res.status(404).json({
           success: false,
           message: 'Revision request not found'
         });
       }
-      
+
+      console.log(`Found revision at index ${revisionIndex}`);
+
       // Update the revision
       job.revisions[revisionIndex].status = 'completed';
       job.revisions[revisionIndex].completedAt = new Date();
-      job.revisions[revisionIndex].freelancerNotes = req.body.message || '';
+      job.revisions[revisionIndex].freelancerNotes = message || '';
       job.revisions[revisionIndex].deliverables = deliverables;
-      
+
       // Update job status
       job.status = 'revision_completed';
-      
+
       await job.save();
-      
+
+      console.log('Revision submitted successfully');
+
       return res.status(200).json({
         success: true,
         data: job,
         message: 'Revision submitted successfully. The client will be notified to review the changes.'
       });
-    } 
+    }
     // Handle initial submission
     else {
+      console.log('Processing initial work submission');
+      
       // Check if job is in progress
       if (job.status !== 'in_progress') {
         return res.status(400).json({
@@ -219,16 +542,18 @@ exports.submitWork = async (req, res) => {
           message: 'Can only submit work for jobs that are in progress'
         });
       }
-      
-      // Clear existing deliverables if any
+
+      // Update deliverables with Google Drive URLs
       job.deliverables = deliverables;
-      
+
       // Update job status to completed
       job.status = 'completed';
-      job.freelancerNote = req.body.message || '';
-      
+      job.freelancerNote = message || '';
+
       await job.save();
-      
+
+      console.log('Initial work submitted successfully');
+
       return res.status(200).json({
         success: true,
         data: job,
@@ -237,9 +562,18 @@ exports.submitWork = async (req, res) => {
     }
   } catch (error) {
     console.error('Error in submitWork:', error);
+    
+    // Handle specific MongoDB errors
+    if (error.name === 'CastError' && error.path === '_id') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid job ID provided'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Server error occurred while processing your request',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
