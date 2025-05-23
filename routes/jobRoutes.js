@@ -291,4 +291,75 @@ router.put(
 )
 
 
+
+
+
+
+
+
+
+
+
+
+router.post(
+  '/payment/deposit/create-order',
+  authMiddleware,
+  [
+    body('jobId').notEmpty().withMessage('Job ID is required')
+  ],
+  paymentController.createDepositOrder
+);
+
+// Create final payment order (remaining 50%)
+router.post(
+  '/payment/final/create-order',
+  authMiddleware,
+  [
+    body('jobId').notEmpty().withMessage('Job ID is required')
+  ],
+  paymentController.createFinalOrder
+);
+
+// Verify Razorpay payment
+router.post(
+  '/payment/verify',
+  authMiddleware,
+  [
+    body('razorpay_order_id').notEmpty().withMessage('Order ID is required'),
+    body('razorpay_payment_id').notEmpty().withMessage('Payment ID is required'),
+    body('razorpay_signature').notEmpty().withMessage('Signature is required'),
+    body('paymentType').isIn(['deposit', 'final']).withMessage('Valid payment type is required')
+  ],
+  paymentController.verifyPayment
+);
+
+// Legacy payment routes (maintained for backward compatibility)
+router.post(
+  '/payment/deposit',
+  authMiddleware,
+  [
+    body('jobId').notEmpty().withMessage('Job ID is required'),
+    body('paymentMethod').notEmpty().withMessage('Payment method is required')
+  ],
+  paymentController.processDepositPayment
+);
+
+router.post(
+  '/payment/final',
+  authMiddleware,
+  [
+    body('jobId').notEmpty().withMessage('Job ID is required'),
+    body('paymentMethod').notEmpty().withMessage('Payment method is required')
+  ],
+  paymentController.processFinalPayment
+);
+
+
+
+
+
+
+
+
+
 module.exports = router;

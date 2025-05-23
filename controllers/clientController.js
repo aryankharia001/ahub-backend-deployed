@@ -48,6 +48,8 @@ exports.reviewSubmittedWork = async (req, res) => {
     try {
       const { id } = req.params;
       const { action, feedback } = req.body;
+
+      console.log("id : ", req.body);
       
       // Find the job
       const job = await Job.findById(id);
@@ -68,12 +70,13 @@ exports.reviewSubmittedWork = async (req, res) => {
       }
       
       
-      
+      console.log("action : ", action);
+
       // Handle client's decision
       if (action === 'approve') {
         // Mark job as approved by client
         job.clientApproved = true;
-        job.status = 'approved_by_client';
+        job.status = 'job_end';
         job.clientFeedback = feedback || 'Work approved';
         job.clientApprovedAt = new Date();
         
@@ -92,6 +95,8 @@ exports.reviewSubmittedWork = async (req, res) => {
             message: 'You have used all your revision requests for this job.'
           });
         }
+
+        console.log("action 2 : ", job);
         
         // Create a new revision request
         const newRevision = {

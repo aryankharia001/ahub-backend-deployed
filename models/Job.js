@@ -1,4 +1,4 @@
-// Updated models/Job.js with revision tracking
+// Updated models/Job.js with Razorpay fields
 const mongoose = require('mongoose');
 
 const deliverableSchema = new mongoose.Schema({
@@ -110,6 +110,23 @@ const jobSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Razorpay payment fields
+  razorpayDepositOrderId: {
+    type: String,
+    default: null
+  },
+  razorpayDepositPaymentId: {
+    type: String,
+    default: null
+  },
+  razorpayFinalOrderId: {
+    type: String,
+    default: null
+  },
+  razorpayFinalPaymentId: {
+    type: String,
+    default: null
+  },
   adminFeedback: {
     type: String,
     default: null
@@ -202,6 +219,9 @@ jobSchema.index({ freelancer: 1 });
 jobSchema.index({ category: 1 });
 jobSchema.index({ deadline: 1 });
 jobSchema.index({ paymentStatus: 1 });
+// Add indexes for Razorpay fields to speed up lookups
+jobSchema.index({ razorpayDepositOrderId: 1 });
+jobSchema.index({ razorpayFinalOrderId: 1 });
 
 const Job = mongoose.model('Job', jobSchema);
 module.exports = Job;
