@@ -12,6 +12,7 @@ dotenv.config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');  // Added job routes
+const adminUserRoutes = require('./routes/adminUserRoutes');
 // Add other routes as they're created
 // const userRoutes = require('./routes/userRoutes');
 
@@ -56,7 +57,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);  // Added job routes
 // app.use('/api/');  // Added job routes
-// app.use('/api/users', userRoutes);
+app.use('/api/admin', adminUserRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
