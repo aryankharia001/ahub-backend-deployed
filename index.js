@@ -4,7 +4,6 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 // Load environment variables
@@ -49,29 +48,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Logging middleware
-// if (process.env.NODE_ENV === 'development') {
-//   app.use(morgan('dev'));
-// } else {
-//   app.use(morgan('combined'));
-// }
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
 
-// Auth rate limiting (stricter)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Limit each IP to 5 requests per windowMs
-  message: 'Too many authentication attempts, please try again later.'
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
+
 
 // API routes
 app.use('/api/auth', authRoutes);
