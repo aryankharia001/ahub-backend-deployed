@@ -720,7 +720,7 @@ exports.getContributorStats = async (req, res) => {
       status: 'final_paid'
     });
     
-    const totalEarnings = completedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
+    const totalEarnings = completedJobs.reduce((sum, job) => sum + (job.contributorPrice || 0), 0);
     
     // Get available jobs count
     const availableJobsCount = await Job.countDocuments({

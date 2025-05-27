@@ -98,6 +98,9 @@ const jobSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
+  contributorPrice: {
+    type: Number,
+  },
   depositAmount: {
     type: Number,
     default: null

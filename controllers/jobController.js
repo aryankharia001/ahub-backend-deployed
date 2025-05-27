@@ -12,7 +12,9 @@ exports.createJob = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { title, description, deadline, category, skills, visibility } = req.body;
+    console.log('req.body : ', req.body);
+
+    const { title, description, deadline, category, skills, visibility, contributorPrice } = req.body;
 
     // Create job with status 'pending' for admin review
     const job = new Job({
@@ -23,7 +25,8 @@ exports.createJob = async (req, res) => {
       skills: skills || [],
       visibility: visibility || 'public',
       client: req.user.id,
-      status: 'pending' // Admin needs to review and set price
+      status: 'pending', // Admin needs to review and set price
+      contributorPrice,
     });
 
     await job.save();
@@ -295,7 +298,7 @@ exports.revisionRequired = async (req, res) => {
 
 exports.reviewJob = async (req, res) => {
   try {
-    const { status, price, adminFeedback } = req.body;
+    const { status, price, adminFeedback, contributorPrice } = req.body;
     
     let job = await Job.findById(req.params.id);
     
@@ -320,7 +323,8 @@ exports.reviewJob = async (req, res) => {
       {
         status,
         price: status === 'approved' ? price : null,
-        adminFeedback
+        adminFeedback,
+        contributorPrice
       },
       { new: true }
     );

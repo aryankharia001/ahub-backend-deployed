@@ -73,6 +73,7 @@ router.put(
   body('status').isIn(['approved', 'rejected']),
   body('price').optional().isNumeric(),
   body('adminFeedback').optional().isString(),
+  body('contributorPrice').optional().isString(),
   jobController.reviewJob
 );
 
