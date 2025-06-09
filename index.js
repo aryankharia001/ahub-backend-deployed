@@ -49,14 +49,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
-
-
-
-// API routes
+// API routes (these should come before static file serving)
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);  // Added job routes
-// app.use('/api/');  // Added job routes
 app.use('/api/admin', adminUserRoutes);
 
 // Health check route
@@ -69,8 +64,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root route
-app.get('/', (req, res) => {
+// Root API route
+app.get('/api', (req, res) => {
   res.json({
     message: 'ahub API Server',
     version: '1.0.0',
@@ -82,7 +77,30 @@ app.get('/', (req, res) => {
   });
 });
 
-// 404 handler
+// Serve static files from the frontend dist folder
+// This assumes your frontend build is in a 'dist' folder
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+// This is essential for single-page applications with client-side routing
+app.get('*', (req, res, next) => {
+  // Skip API routes and specific file requests
+  if (req.originalUrl.startsWith('/api/') || 
+      req.originalUrl.startsWith('/uploads/') || 
+      req.originalUrl.startsWith('/health')) {
+    return next();
+  }
+  
+  // Serve the frontend's index.html
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'), (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      next(err);
+    }
+  });
+});
+
+// 404 handler for API routes and other resources
 app.use((req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   res.status(404);
@@ -113,10 +131,14 @@ mongoose.connect(process.env.MONGODB_URI, {
   
   // Start server after database connection
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    // console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-    console.log(`📡 API available at http://localhost:${PORT}`);
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    console.log(`📡 API available at http://localhost:${PORT}/api`);
+    console.log(`🌐 Frontend available at http://localhost:${PORT}`);
   });
+  
+  // Make server available for graceful shutdown
+  app.set('server', server);
 })
 .catch((error) => {
   console.error('❌ MongoDB connection error:', error);
@@ -127,15 +149,23 @@ mongoose.connect(process.env.MONGODB_URI, {
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise Rejection:', err);
   // Close server & exit process
-  server.close(() => process.exit(1));
+  const server = app.get('server');
+  if (server) {
+    server.close(() => process.exit(1));
+  } else {
+    process.exit(1);
+  }
 });
 
 // Handle SIGTERM
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-  });
+  const server = app.get('server');
+  if (server) {
+    server.close(() => {
+      console.log('Process terminated');
+    });
+  }
 });
 
 module.exports = app;
