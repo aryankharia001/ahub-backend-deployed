@@ -12,7 +12,7 @@ exports.createJob = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    console.log('req.body : ', req.body);
+    // console.log('req.body : ', req.body);
 
     const { title, description, deadline, category, skills, visibility, contributorPrice } = req.body;
 
